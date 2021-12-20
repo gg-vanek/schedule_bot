@@ -36,7 +36,7 @@ def convert():
     last_start1, last_end1, last_start2, last_end2, last_start3, last_end3 = 1, 2, 3, 28, 29, 35
 
     timetable = {}
-    for page in pdf_pages:
+    for page_number, page in enumerate(pdf_pages):
         if page.shape == (44, 17):
             page = pd.concat([page.iloc[:, 0:5], page.iloc[:, 0], page.iloc[:, 5:]], axis='columns')
             page.iloc[0, 4], page.iloc[0, 5] = np.NaN, page.iloc[0, 4]
@@ -78,9 +78,13 @@ def convert():
 
             clear_page.iloc[0] = first_row
 
+            if page_number > 0 and page_number < 8:
+                clear_page.loc[38:, 7] = clear_page.loc[38:, 6]
+                clear_page.loc[31:, 6] = clear_page.loc[31:, 5]
+                clear_page.loc[31:, 5] = clear_page.loc[31:, 8]
+
             # далее удалим лишние стобцы
             clear_page = clear_page.drop([0, 1, 2, 17], axis='columns').drop([1], axis='index')
-
         if page.shape == (44, 10):
             # сктроки с start1 по end1 включительно сдвинуть на 3 ячейку влево
             # строки с start2 по end2 сдвинуть на 2 ячейки в право
@@ -156,7 +160,8 @@ def convert():
                         iterations_dict[iteration_day_id][i - 1], -1]
             timetable[single_class_timetable_df.iloc[0, 2]] = single_class_timetable_dict
 
-    exit_file_name = 'data/json/' + pdf_files[-1].split('\\')[-1][:-4] + '.json'
+    # exit_file_name = 'data/json/' + pdf_files[-1].split('\\')[-1][:-4] + '.json'
+    exit_file_name = 'data/json/schedule.json'
     # clear_data(timetable)
     with open(exit_file_name, 'w', encoding="cp1251") as f:
         json.dump(timetable, f)

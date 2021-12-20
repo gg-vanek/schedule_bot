@@ -9,15 +9,16 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 import json
 import datetime
 
-# http://t.me/liceum_schedule_bot
-bot_token = ''
+from bot_token import bot_token
+
+#http://t.me/liceum_schedule_bot
 bot = Bot(bot_token)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
 
 WEBHOOK_PORT = 5000
 WEBHOOK_HOST = "127.0.0.1"
-WEBHOOK_URL = 'https://f610-46-73-138-171.ngrok.io'
+WEBHOOK_URL = 'https://688b-46-73-138-171.ngrok.io'
 WEBHOOK_PATH = ''
 WEBAPP_PORT = 5000
 
@@ -28,6 +29,7 @@ full_class = ''
 lessons = []
 command = ''
 
+
 db = sqlite3.connect('bot.db')
 sql = db.cursor()
 sql.execute("""CREATE TABLE IF NOT EXISTS users_data (
@@ -35,8 +37,7 @@ sql.execute("""CREATE TABLE IF NOT EXISTS users_data (
     class   TEXT)
     """)
 
-
-# ------------------START--------
+#------------------START--------
 @dp.message_handler(commands=['start'])
 async def welcome(message: types.Message):
     global command
@@ -47,7 +48,7 @@ async def welcome(message: types.Message):
     await bot.send_message(message.chat.id, 'Выбери класс', reply_markup=grade_buttons)
 
 
-# ------------------RESET_CLASS---------
+#------------------RESET_CLASS---------
 @dp.message_handler(commands=['reset_grade'])
 async def reset_grade(message: types.Message):
     global command
@@ -55,19 +56,16 @@ async def reset_grade(message: types.Message):
     create_grade_buttons()
     await bot.send_message(message.chat.id, 'Выбери класс', reply_markup=grade_buttons)
 
-
-# ------------------ONE_DAY_LESSONS--------
+#------------------ONE_DAY_LESSONS--------
 @dp.message_handler(commands=['one_day_lessons'])
 async def one_day_lessons(message: types.Message):
     global grade_buttons, command
-    rows_id = sql.execute('''SELECT * FROM users_data''').fetchall()
-    print(rows_id)
     command = 'one_day_lessons'
     create_grade_buttons()
     await bot.send_message(message.chat.id, 'Выбери класс', reply_markup=grade_buttons)
 
 
-# --------------------ALL_WEEK_LESSONS-----------------
+#--------------------ALL_WEEK_LESSONS-----------------
 
 @dp.message_handler(commands=['all_week_lessons'])
 async def schedule(message: types.Message):
@@ -77,7 +75,7 @@ async def schedule(message: types.Message):
     await bot.send_message(message.chat.id, 'Выбери класс', reply_markup=grade_buttons)
 
 
-# ------------------TODAY_LESSONS--------
+#------------------TODAY_LESSONS--------
 @dp.message_handler(commands=['today_lessons'])
 async def today_lessons(message: types.Message):
     global lessons
@@ -115,11 +113,57 @@ async def today_lessons(message: types.Message):
     if weekday != 6:
         open_schedule(my_class, weekday)
         await bot.send_message(message.chat.id, lessons[0])
+    lessons = []
 
+@dp.message_handler(commands=['my_week_lessons'])
+async def my_week_lessons(message: types.Message):
+    global lessons
+    rows_id = sql.execute('''SELECT id FROM users_data''').fetchall()
+    rows_idnew = []
+    for i in rows_id:
+        rows_idnew.append(i[0])
+
+    rows_class = sql.execute('''SELECT class FROM users_data''').fetchall()
+    rows_classnew = []
+    for i in rows_class:
+        rows_classnew.append(i[0])
+
+    for i in range(len(rows_idnew)):
+        if rows_idnew[i] == message.chat.id:
+            my_class = rows_classnew[i]
+    open_schedule(my_class)
+    for i in lessons:
+        await bot.send_message(message.chat.id, i)
+    lessons = []
+
+#-------------------MY_DAY_LESSONS
+@dp.message_handler(commands=['my_day_lessons'])
+async def my_day_lessons(message: types.Message):
+    global full_class
+    rows_id = sql.execute('''SELECT id FROM users_data''').fetchall()
+    rows_idnew = []
+    for i in rows_id:
+        rows_idnew.append(i[0])
+
+    rows_class = sql.execute('''SELECT class FROM users_data''').fetchall()
+    rows_classnew = []
+    for i in rows_class:
+        rows_classnew.append(i[0])
+
+    for i in range(len(rows_idnew)):
+        if rows_idnew[i] == message.chat.id:
+            full_class = rows_classnew[i]
+    create_days_button()
+    await bot.send_message(message.chat.id, 'Выбери день недели', reply_markup=days_buttons)
+
+#----------------INFO---------
+@dp.message_handler(commands=['info'])
+async def send_info(message: types.Message):
+    await bot.send_message(message.chat.id, 'Что умеет наш бот?\n/today_lessons - твоё расписание на сегодня\n/my_week_lessons - твоё расписание на неделю\n/my_day_lessons - твоё расписание на какай-нибудь день недели\n/all_week_lessons - расписание на неделю любого класса\n/one_day_lessons - расписание на какой-нибудь любого класса\n/reset_grade - если ты перешёл в новый класс, воспользуйся этой командой')
 
 @dp.message_handler()
 async def echo(message: types.Message):
-    # print(message)
+    #print(message)
     global letter_buttons, grade, letter, group, full_class, lessons, command, days_buttons
     if message.text == '8':
         create_letter_button(8)
@@ -129,12 +173,11 @@ async def echo(message: types.Message):
         create_letter_button(9)
         grade = 9
         await bot.send_message(message.chat.id, 'Выбери букву класса', reply_markup=letter_buttons)
-    if message.text == '10':
+    if message.text == '10' :
         create_letter_button(10)
         grade = 10
         await bot.send_message(message.chat.id, 'Выбери букву класса', reply_markup=letter_buttons)
     if message.text == '11':
-        await bot.send_message(message.chat.id, 'походу 11и1 и 11и2 идут нахуй')
         create_letter_button(11)
         grade = 11
         await bot.send_message(message.chat.id, 'Выбери букву класса', reply_markup=letter_buttons)
@@ -167,6 +210,7 @@ async def echo(message: types.Message):
             open_schedule(full_class)
             for i in lessons:
                 await bot.send_message(message.chat.id, i)
+
         elif command == 'one_day_lessons':
             create_days_button()
             await bot.send_message(message.chat.id, 'Выбери день недели', reply_markup=days_buttons)
@@ -182,7 +226,7 @@ async def echo(message: types.Message):
         full_class = f'{grade}{letter}{group}'
         if command == 'all_week_lessons':
             open_schedule(full_class)
-            await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса')
+            await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса')
             for i in lessons:
                 await bot.send_message(message.chat.id, i)
         elif command == 'one_day_lessons':
@@ -190,38 +234,38 @@ async def echo(message: types.Message):
             await bot.send_message(message.chat.id, 'Выбери день недели', reply_markup=days_buttons)
         elif command == 'start':
             insert_id(message.chat.id, full_class)
-            await bot.send_message(message.chat.id, f'Ты учишься в {grade}{letter}{group} классе')
+            await bot.send_message(message.chat.id, f'Ты учишься в {full_class} классе')
         elif command == 'reset_grade':
             reset_class(message.chat.id, full_class)
             await bot.send_message(message.chat.id, f'Теперь ты учишься в {full_class} классе')
 
     if message.text == 'Monday':
         open_schedule(full_class, 'Понедельник')
-        await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса на понедельник')
+        await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса на понедельник')
         await bot.send_message(message.chat.id, lessons[0])
     if message.text == 'Tuesday':
         open_schedule(full_class, 'Вторник')
-        await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса на вторник')
+        await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса на вторник')
         await bot.send_message(message.chat.id, lessons[0])
     if message.text == 'Wednesday':
         open_schedule(full_class, 'Среда')
-        await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса на среду')
+        await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса на среду')
         await bot.send_message(message.chat.id, lessons[0])
     if message.text == 'Thursday':
         open_schedule(full_class, 'Четверг')
-        await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса на четверг')
+        await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса на четверг')
         await bot.send_message(message.chat.id, lessons[0])
     if message.text == 'Friday':
         open_schedule(full_class, 'Пятница')
-        await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса на пятницу')
+        await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса на пятницу')
         await bot.send_message(message.chat.id, lessons[0])
     if message.text == 'Saturday':
         open_schedule(full_class, 'Суббота')
-        await bot.send_message(message.chat.id, f'Ты видишь расписани {grade}{letter}{group} класса на субботу')
+        await bot.send_message(message.chat.id, f'Ты видишь расписани {full_class} класса на субботу')
         await bot.send_message(message.chat.id, lessons[0])
+    lessons = []
 
-
-# кнопки с выбором класса
+#кнопки с выбором класса
 def create_grade_buttons():
     global grade_buttons
     grade_buttons = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -233,7 +277,7 @@ def create_grade_buttons():
     grade_buttons.row(button10, button11)
 
 
-# нопки с буквами
+#нопки с буквами
 def create_letter_button(grade):
     global letter_buttons
     letter_buttons = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -245,11 +289,11 @@ def create_letter_button(grade):
     if grade == 8:
         letter_buttons.add(but1, but2, but3)
     elif grade == 9:
-        letter_buttons.add(but1, but2, but3, but4)
+        letter_buttons.row(but1, but2)
+        letter_buttons.row(but3, but4)
     elif grade == 10 or grade == 11:
         letter_buttons.add(but1, but2, but3, but4, but5)
     return letter_buttons
-
 
 def create_group_buttons():
     global group_buttons
@@ -258,7 +302,6 @@ def create_group_buttons():
     second_gr = KeyboardButton(text='2')
     group_buttons.add(first_gr, second_gr)
     return group_buttons
-
 
 def create_days_button():
     global days_buttons
@@ -272,11 +315,13 @@ def create_days_button():
     days_buttons.add(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday)
     return days_buttons
 
-
-# вытаскивание информации
+#вытаскивание информации
 def open_schedule(key, day=None):
-    with open('data/json/schedule.json', 'r') as f:
+    with open('data/json/schedule2.json' ,'r') as f:
         a = json.load(f)
+
+    rows_id = sql.execute('''SELECT * FROM users_data''').fetchall()
+    print(rows_id)
     if day == None:
         day_ = 0
         for i in a[key]:
@@ -284,23 +329,31 @@ def open_schedule(key, day=None):
             lessons[day_] += '\n'
 
             for j in a[key][i]:
-                if type(a[key][i][j]["Предмет"]) != float:
-                    str = f'{a[key][i][j]["Время"]}  {a[key][i][j]["Предмет"]}  {a[key][i][j]["Кабинет"]}'
+                if type(a[key][i][j]["Предмет"]) != float or type(a[key][i][j]["Кабинет"]) != float:
+                    if (len(a[key][i][j]["Кабинет"]) > 5):
+                        str = f'{a[key][i][j]["Время"]}  {a[key][i][j]["Предмет"]}  {a[key][i][j]["Кабинет"][:3]}/{a[key][i][j]["Кабинет"][-3:]}'
+                    else:
+                        str = f'{a[key][i][j]["Время"]}  {a[key][i][j]["Предмет"]}  {a[key][i][j]["Кабинет"]}'
                     lessons[day_] += str
                     lessons[day_] += '\n'
             day_ += 1
     else:
         lessons.append(day)
         lessons[0] += '\n'
+        print(a[key][day])
         for i in a[key][day]:
-            if type(a[key][day][i]["Предмет"]) != float:
-                str = f'{a[key][day][i]["Время"]}  {a[key][day][i]["Предмет"]}  {a[key][day][i]["Кабинет"]}'
+            if type(a[key][day][i]["Предмет"]) != float or type(a[key][day][i]["Кабинет"]) != float:
+                if (len(a[key][day][i]["Кабинет"]) > 5):
+                    str = f'{a[key][day][i]["Время"]}  {a[key][day][i]["Предмет"]}  {a[key][day][i]["Кабинет"][:3]}/{a[key][day][i]["Кабинет"][-3:]}'
+                else:
+                    str = f'{a[key][day][i]["Время"]}  {a[key][day][i]["Предмет"]}  {a[key][day][i]["Кабинет"]}'
                 lessons[0] += str
                 lessons[0] += '\n'
+    print(lessons)
     return lessons
 
 
-# add id in database
+#add id in database
 def insert_id(id, grade):
     rows_id = sql.execute('''SELECT id FROM users_data''').fetchall()
     rows_idnew = []
@@ -310,18 +363,16 @@ def insert_id(id, grade):
         sql.execute(f"""INSERT INTO users_data(id, class) VALUES (?, ?)""", (id, grade))
     db.commit()
 
-
-# reset class in db
+#reset class in db
 def reset_class(id, grade):
     sql.execute(f'''UPDATE users_data SET class = ? WHERE id = ?''', (grade, id))
     db.commit()
 
 
-# ------------------webhook------------------------------------------------------------------------
+#------------------webhook------------------------------------------------------------------------
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
-
 
 async def on_shutdown(dp):
     logging.warning('Shutting down..')
@@ -335,7 +386,6 @@ async def on_shutdown(dp):
     await dp.storage.wait_closed()
 
     logging.warning('Bye!')
-
 
 if __name__ == '__main__':
     executor.start_webhook(
