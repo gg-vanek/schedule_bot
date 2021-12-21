@@ -160,10 +160,11 @@ def convert():
                         iterations_dict[iteration_day_id][i - 1], -1]
             timetable[single_class_timetable_df.iloc[0, 2]] = single_class_timetable_dict
 
-    # exit_file_name = 'data/json/' + pdf_files[-1].split('\\')[-1][:-4] + '.json'
+    checkpoint_file_name = 'data/json/' + pdf_files[-1].split('\\')[-1][:-4] + '.json'
     exit_file_name = 'data/json/schedule.json'
-    # clear_data(timetable)
     with open(exit_file_name, 'w', encoding="cp1251") as f:
+        json.dump(timetable, f)
+    with open(checkpoint_file_name, 'w', encoding="cp1251") as f:
         json.dump(timetable, f)
 
     return exit_file_name
